@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ certification.title }} - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Certification</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="title" class="form-label">Certification Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   value="{{ certification.title }}">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="certification_type" class="form-label">Certification Type *</label>
+                            <select class="form-select" id="certification_type" name="certification_type" required>
+                                <option value="professional" {% if certification.certification_type == 'professional' %}selected{% endif %}>
+                                    Professional Certificate
+                                </option>
+                                <option value="specialization" {% if certification.certification_type == 'specialization' %}selected{% endif %}>
+                                    Specialization
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label">Description *</label>
+                            <textarea class="form-control" id="description" name="description" rows="6" required>{{ certification.description }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="thumbnail" class="form-label">Thumbnail Image</label>
+                            {% if certification.thumbnail %}
+                            <div class="mb-2">
+                                <img src="{{ certification.thumbnail.url }}" alt="Current thumbnail"
+                                     class="img-thumbnail" style="max-height: 200px;">
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" id="thumbnail" name="thumbnail" accept="image/*">
+                            <small class="text-muted">Leave empty to keep current thumbnail</small>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <a href="{% url 'instructor_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                            <a href="{% url 'delete_certification' certification.pk %}" class="btn btn-outline-danger ms-auto">
+                                <i class="fas fa-trash"></i> Delete Certification
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar - Courses -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-book"></i> Courses in this Certification</h5>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                    <div class="list-group list-group-flush">
+                        {% for course in courses %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ course.title }}</h6>
+                                    <small class="text-muted">Order: {{ course.order }}</small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'edit_course' course.pk %}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">No courses yet</p>
+                    {% endif %}
+
+                    <a href="{% url 'create_course_for_cert' certification.pk %}" class="btn btn-success w-100 mt-3">
+                        <i class="fas fa-plus"></i> Add Course
+                    </a>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">Quick Info</h6>
+                    <p class="small mb-2">
+                        <strong>Type:</strong> {{ certification.get_certification_type_display }}
+                    </p>
+                    <p class="small mb-2">
+                        <strong>Created:</strong> {{ certification.created_at|date:"M d, Y" }}
+                    </p>
+                    <p class="small mb-0">
+                        <strong>Last Updated:</strong> {{ certification.updated_at|date:"M d, Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

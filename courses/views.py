@@ -494,3 +494,431 @@ def download_professional_certificate(request, pk):
     response['Content-Disposition'] = f'attachment; filename="professional_certificate_{certificate.certificate_id}.pdf"'
 
     return response
+
+# =====================================
+# USER PROFILE MANAGEMENT VIEWS
+# =====================================
+
+@login_required
+def profile(request):
+    """User profile view and edit"""
+    if request.method == 'POST':
+        # Update profile
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        email = request.POST.get('email', '')
+        matric_number = request.POST.get('matric_number', '')
+        title = request.POST.get('title', '')
+        bio = request.POST.get('bio', '')
+
+        # Update user fields
+        request.user.first_name = first_name
+        request.user.last_name = last_name
+        request.user.email = email
+        request.user.matric_number = matric_number or None
+        request.user.title = title
+        request.user.bio = bio
+
+        # Handle profile picture upload
+        if 'profile_picture' in request.FILES:
+            request.user.profile_picture = request.FILES['profile_picture']
+
+        request.user.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+
+    context = {
+        'user': request.user,
+    }
+    return render(request, 'courses/profile.html', context)
+
+
+@login_required
+def change_password(request):
+    """Change user password"""
+    if request.method == 'POST':
+        old_password = request.POST.get('old_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+
+        # Validate old password
+        if not request.user.check_password(old_password):
+            messages.error(request, 'Current password is incorrect.')
+            return redirect('change_password')
+
+        # Validate new passwords match
+        if new_password != confirm_password:
+            messages.error(request, 'New passwords do not match.')
+            return redirect('change_password')
+
+        # Update password
+        request.user.set_password(new_password)
+        request.user.save()
+
+        # Re-authenticate user
+        login(request, request.user)
+
+        messages.success(request, 'Password changed successfully!')
+        return redirect('profile')
+
+    return render(request, 'courses/change_password.html')
+
+
+# =====================================
+# INSTRUCTOR: COURSE MANAGEMENT VIEWS
+# =====================================
+
+@login_required
+def instructor_dashboard(request):
+    """Dashboard for instructors to manage their courses"""
+    if not request.user.can_create_courses():
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
+
+    # Get instructor's certifications and courses
+    certifications = ProfessionalCertification.objects.filter(
+        created_by=request.user
+    ).annotate(
+        course_count=Count('courses')
+    )
+
+    courses = Course.objects.filter(created_by=request.user).select_related('certification')
+
+    context = {
+        'certifications': certifications,
+        'courses': courses,
+    }
+    return render(request, 'courses/instructor/dashboard.html', context)
+
+
+@login_required
+def create_certification(request):
+    """Create a new professional certification or specialization"""
+    if not request.user.can_create_courses():
+        messages.error(request, 'You do not have permission to create certifications.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        certification_type = request.POST.get('certification_type')
+        thumbnail = request.FILES.get('thumbnail')
+
+        # Create certification
+        certification = ProfessionalCertification.objects.create(
+            title=title,
+            description=description,
+            certification_type=certification_type,
+            created_by=request.user,
+            thumbnail=thumbnail
+        )
+
+        messages.success(request, f'Certification "{title}" created successfully!')
+        return redirect('edit_certification', pk=certification.pk)
+
+    return render(request, 'courses/instructor/create_certification.html')
+
+
+@login_required
+def edit_certification(request, pk):
+    """Edit an existing certification"""
+    certification = get_object_or_404(ProfessionalCertification, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        certification.title = request.POST.get('title')
+        certification.description = request.POST.get('description')
+        certification.certification_type = request.POST.get('certification_type')
+
+        if 'thumbnail' in request.FILES:
+            certification.thumbnail = request.FILES['thumbnail']
+
+        certification.save()
+
+        messages.success(request, 'Certification updated successfully!')
+        return redirect('edit_certification', pk=pk)
+
+    # Get courses in this certification
+    courses = certification.courses.all().order_by('order')
+
+    context = {
+        'certification': certification,
+        'courses': courses,
+    }
+    return render(request, 'courses/instructor/edit_certification.html', context)
+
+
+@login_required
+def delete_certification(request, pk):
+    """Delete a certification"""
+    certification = get_object_or_404(ProfessionalCertification, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        title = certification.title
+        certification.delete()
+        messages.success(request, f'Certification "{title}" deleted successfully!')
+        return redirect('instructor_dashboard')
+
+    return render(request, 'courses/instructor/delete_certification.html', {'certification': certification})
+
+
+@login_required
+def create_course(request, certification_pk=None):
+    """Create a new course"""
+    if not request.user.can_create_courses():
+        messages.error(request, 'You do not have permission to create courses.')
+        return redirect('dashboard')
+
+    certification = None
+    if certification_pk:
+        certification = get_object_or_404(
+            ProfessionalCertification,
+            pk=certification_pk,
+            created_by=request.user
+        )
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        cert_id = request.POST.get('certification')
+        order = request.POST.get('order', 0)
+        thumbnail = request.FILES.get('thumbnail')
+
+        # Get certification if provided
+        cert = None
+        if cert_id:
+            cert = get_object_or_404(ProfessionalCertification, pk=cert_id, created_by=request.user)
+
+        # Create course
+        course = Course.objects.create(
+            title=title,
+            description=description,
+            certification=cert,
+            created_by=request.user,
+            order=order,
+            thumbnail=thumbnail
+        )
+
+        messages.success(request, f'Course "{title}" created successfully!')
+        return redirect('edit_course', pk=course.pk)
+
+    # Get user's certifications for dropdown
+    certifications = ProfessionalCertification.objects.filter(created_by=request.user)
+
+    context = {
+        'certification': certification,
+        'certifications': certifications,
+    }
+    return render(request, 'courses/instructor/create_course.html', context)
+
+
+@login_required
+def edit_course(request, pk):
+    """Edit an existing course"""
+    course = get_object_or_404(Course, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        course.title = request.POST.get('title')
+        course.description = request.POST.get('description')
+        course.order = request.POST.get('order', 0)
+
+        cert_id = request.POST.get('certification')
+        if cert_id:
+            course.certification = get_object_or_404(
+                ProfessionalCertification,
+                pk=cert_id,
+                created_by=request.user
+            )
+        else:
+            course.certification = None
+
+        if 'thumbnail' in request.FILES:
+            course.thumbnail = request.FILES['thumbnail']
+
+        course.save()
+
+        messages.success(request, 'Course updated successfully!')
+        return redirect('edit_course', pk=pk)
+
+    # Get modules in this course
+    modules = course.modules.all().order_by('order')
+
+    # Get user's certifications for dropdown
+    certifications = ProfessionalCertification.objects.filter(created_by=request.user)
+
+    context = {
+        'course': course,
+        'modules': modules,
+        'certifications': certifications,
+    }
+    return render(request, 'courses/instructor/edit_course.html', context)
+
+
+@login_required
+def delete_course(request, pk):
+    """Delete a course"""
+    course = get_object_or_404(Course, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        title = course.title
+        course.delete()
+        messages.success(request, f'Course "{title}" deleted successfully!')
+        return redirect('instructor_dashboard')
+
+    return render(request, 'courses/instructor/delete_course.html', {'course': course})
+
+
+@login_required
+def create_module(request, course_pk):
+    """Create a new module in a course"""
+    course = get_object_or_404(Course, pk=course_pk, created_by=request.user)
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        module_type = request.POST.get('module_type')
+        order = request.POST.get('order', 0)
+        text_content = request.POST.get('text_content', '')
+        video_duration = request.POST.get('video_duration', 0)
+
+        # Create module
+        module = Module.objects.create(
+            course=course,
+            title=title,
+            module_type=module_type,
+            order=order,
+            text_content=text_content,
+            video_duration=video_duration
+        )
+
+        # Handle file uploads
+        if 'picture' in request.FILES:
+            module.picture = request.FILES['picture']
+
+        if 'video' in request.FILES:
+            module.video = request.FILES['video']
+
+        module.save()
+
+        messages.success(request, f'Module "{title}" created successfully!')
+        return redirect('edit_course', pk=course_pk)
+
+    context = {
+        'course': course,
+    }
+    return render(request, 'courses/instructor/create_module.html', context)
+
+
+@login_required
+def edit_module(request, pk):
+    """Edit an existing module"""
+    module = get_object_or_404(Module, pk=pk, course__created_by=request.user)
+
+    if request.method == 'POST':
+        module.title = request.POST.get('title')
+        module.module_type = request.POST.get('module_type')
+        module.order = request.POST.get('order', 0)
+        module.text_content = request.POST.get('text_content', '')
+        module.video_duration = request.POST.get('video_duration', 0)
+
+        if 'picture' in request.FILES:
+            module.picture = request.FILES['picture']
+
+        if 'video' in request.FILES:
+            module.video = request.FILES['video']
+
+        module.save()
+
+        messages.success(request, 'Module updated successfully!')
+        return redirect('edit_course', pk=module.course.pk)
+
+    context = {
+        'module': module,
+    }
+    return render(request, 'courses/instructor/edit_module.html', context)
+
+
+@login_required
+def delete_module(request, pk):
+    """Delete a module"""
+    module = get_object_or_404(Module, pk=pk, course__created_by=request.user)
+    course_pk = module.course.pk
+
+    if request.method == 'POST':
+        title = module.title
+        module.delete()
+        messages.success(request, f'Module "{title}" deleted successfully!')
+        return redirect('edit_course', pk=course_pk)
+
+    context = {
+        'module': module,
+    }
+    return render(request, 'courses/instructor/delete_module.html', context)
+
+
+# =====================================
+# ENROLLMENT VIEWS
+# =====================================
+
+@login_required
+def enroll_certification(request, pk):
+    """Enroll in a certification/specialization"""
+    certification = get_object_or_404(ProfessionalCertification, pk=pk, is_active=True)
+
+    # Check if already enrolled
+    if certification.is_user_enrolled(request.user):
+        messages.info(request, 'You are already enrolled in this certification.')
+        return redirect('certification_detail', pk=pk)
+
+    # Create enrollment
+    CertificationEnrollment.objects.create(
+        user=request.user,
+        certification=certification
+    )
+
+    messages.success(request, f'Successfully enrolled in {certification.title}!')
+    return redirect('certification_detail', pk=pk)
+
+
+@login_required
+def unenroll_certification(request, pk):
+    """Unenroll from a certification"""
+    certification = get_object_or_404(ProfessionalCertification, pk=pk)
+
+    enrollment = CertificationEnrollment.objects.filter(
+        user=request.user,
+        certification=certification
+    ).first()
+
+    if enrollment:
+        enrollment.delete()
+        messages.success(request, f'Unenrolled from {certification.title}.')
+    else:
+        messages.info(request, 'You were not enrolled in this certification.')
+
+    return redirect('dashboard')
+
+
+@login_required
+def my_enrollments(request):
+    """View all user's enrollments"""
+    enrollments = CertificationEnrollment.objects.filter(
+        user=request.user,
+        is_active=True
+    ).select_related('certification')
+
+    enrollment_data = []
+    for enrollment in enrollments:
+        cert = enrollment.certification
+        progress = cert.get_user_progress(request.user)
+        is_completed = cert.is_completed_by_user(request.user)
+
+        enrollment_data.append({
+            'enrollment': enrollment,
+            'certification': cert,
+            'progress': progress,
+            'is_completed': is_completed,
+        })
+
+    context = {
+        'enrollment_data': enrollment_data,
+    }
+    return render(request, 'courses/my_enrollments.html', context)

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Course - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Create New Course</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="title" class="form-label">Course Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="e.g., Introduction to Python Programming">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label">Course Description *</label>
+                            <textarea class="form-control" id="description" name="description" rows="6" required
+                                      placeholder="Describe what students will learn in this course..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="certification" class="form-label">Certification (Optional)</label>
+                            <select class="form-select" id="certification" name="certification">
+                                <option value="">Standalone Course (No Certification)</option>
+                                {% for cert in certifications %}
+                                <option value="{{ cert.pk }}" {% if certification and certification.pk == cert.pk %}selected{% endif %}>
+                                    {{ cert.title }} ({{ cert.get_certification_type_display }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">
+                                Leave empty to create a standalone course, or select a certification to add this course under it.
+                            </small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="order" class="form-label">Display Order</label>
+                            <input type="number" class="form-control" id="order" name="order" value="0" min="0">
+                            <small class="text-muted">Lower numbers appear first (0 = first position)</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="thumbnail" class="form-label">Course Thumbnail</label>
+                            <input type="file" class="form-control" id="thumbnail" name="thumbnail" accept="image/*">
+                            <small class="text-muted">Recommended: 1200x600px, JPG or PNG</small>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Next Step:</strong> After creating this course, you'll be able to add modules (lessons) to it.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Create Course
+                            </button>
+                            <a href="{% url 'instructor_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

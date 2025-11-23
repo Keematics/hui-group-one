@@ -3,22 +3,22 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, GroupMember, ProfessionalCertification, Course,
     Module, ModuleProgress, CourseCertificate,
-    ProfessionalCertificationCertificate
+    ProfessionalCertificationCertificate, CertificationEnrollment
 )
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['username', 'email', 'first_name', 'last_name', 'matric_number', 'title', 'is_staff']
-    list_filter = ['is_staff', 'is_superuser', 'is_active', 'date_joined']
+    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'matric_number', 'is_staff']
+    list_filter = ['role', 'is_staff', 'is_superuser', 'is_active', 'date_joined']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'matric_number']
 
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('Additional Info', {'fields': ('matric_number', 'title', 'profile_picture')}),
+        ('Additional Info', {'fields': ('matric_number', 'title', 'bio', 'profile_picture', 'role')}),
     )
 
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        ('Additional Info', {'fields': ('matric_number', 'title', 'profile_picture')}),
+        ('Additional Info', {'fields': ('matric_number', 'title', 'bio', 'profile_picture', 'role')}),
     )
 
 
@@ -32,16 +32,16 @@ class GroupMemberAdmin(admin.ModelAdmin):
 
 @admin.register(ProfessionalCertification)
 class ProfessionalCertificationAdmin(admin.ModelAdmin):
-    list_display = ['title', 'get_total_courses', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
+    list_display = ['title', 'certification_type', 'created_by', 'get_total_courses', 'is_active', 'created_at']
+    list_filter = ['certification_type', 'is_active', 'created_at', 'created_by']
     search_fields = ['title', 'description']
     readonly_fields = ['created_at', 'updated_at']
 
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['title', 'certification', 'order', 'get_total_modules', 'is_active', 'created_at']
-    list_filter = ['certification', 'is_active', 'created_at']
+    list_display = ['title', 'certification', 'created_by', 'order', 'get_total_modules', 'is_active', 'created_at']
+    list_filter = ['certification', 'created_by', 'is_active', 'created_at']
     search_fields = ['title', 'description', 'certification__title']
     readonly_fields = ['created_at', 'updated_at']
     ordering = ['certification', 'order', 'title']
@@ -105,3 +105,12 @@ class ProfessionalCertificationCertificateAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'certification__title', 'certificate_id']
     readonly_fields = ['certificate_id', 'issued_at']
     ordering = ['-issued_at']
+
+
+@admin.register(CertificationEnrollment)
+class CertificationEnrollmentAdmin(admin.ModelAdmin):
+    list_display = ['user', 'certification', 'enrolled_at', 'is_active']
+    list_filter = ['is_active', 'enrolled_at', 'certification']
+    search_fields = ['user__username', 'user__email', 'certification__title']
+    readonly_fields = ['enrolled_at']
+    ordering = ['-enrolled_at']
