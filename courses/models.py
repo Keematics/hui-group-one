@@ -6,11 +6,30 @@ from django.utils import timezone
 
 
 class User(AbstractUser):
-    """Extended User model with additional fields"""
+    """Extended User model with additional fields and role management"""
+
+    # User roles
+    ROLE_LEARNER = 'learner'
+    ROLE_INSTRUCTOR = 'instructor'
+
+    ROLE_CHOICES = [
+        (ROLE_LEARNER, 'Learner'),
+        (ROLE_INSTRUCTOR, 'Instructor'),
+    ]
+
     matric_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     title = models.CharField(max_length=100, blank=True)
     profile_picture = CloudinaryField('profile_picture', null=True, blank=True)
+    bio = models.TextField(blank=True, help_text="Brief biography or description")
     date_joined = models.DateTimeField(default=timezone.now)
+
+    # Role field - Group members are instructors by default, others are learners
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default=ROLE_LEARNER,
+        help_text="User role: Instructor can create courses, Learner can only take courses"
+    )
 
     class Meta:
         db_table = 'users'
@@ -20,6 +39,14 @@ class User(AbstractUser):
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip() or self.username
+
+    def is_instructor(self):
+        """Check if user has instructor privileges"""
+        return self.role == self.ROLE_INSTRUCTOR or self.is_staff
+
+    def can_create_courses(self):
+        """Check if user can create and manage courses"""
+        return self.is_instructor() or self.is_superuser
 
 
 class GroupMember(models.Model):
@@ -39,10 +66,33 @@ class GroupMember(models.Model):
 
 
 class ProfessionalCertification(models.Model):
-    """Professional Certification that contains multiple courses"""
+    """Professional Certification or Specialization that contains multiple courses"""
+
+    # Certification types
+    TYPE_PROFESSIONAL = 'professional'
+    TYPE_SPECIALIZATION = 'specialization'
+
+    TYPE_CHOICES = [
+        (TYPE_PROFESSIONAL, 'Professional Certificate'),
+        (TYPE_SPECIALIZATION, 'Specialization'),
+    ]
+
     title = models.CharField(max_length=200)
     description = models.TextField()
+    certification_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default=TYPE_PROFESSIONAL,
+        help_text="Type of certification"
+    )
     thumbnail = CloudinaryField('certification_thumbnail', null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_certifications',
+        help_text="Instructor who created this certification"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -52,13 +102,17 @@ class ProfessionalCertification(models.Model):
         db_table = 'professional_certifications'
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.get_certification_type_display()})"
 
     def get_total_courses(self):
         return self.courses.count()
 
     def get_user_progress(self, user):
-        """Calculate user's progress across all courses in this certification"""
+        """Calculate user's progress across all courses in this certification (only if enrolled)"""
+        # Check if user is enrolled in this certification
+        if not self.enrollments.filter(user=user).exists():
+            return 0
+
         total_courses = self.courses.filter(is_active=True).count()
         if total_courses == 0:
             return 0
@@ -71,24 +125,42 @@ class ProfessionalCertification(models.Model):
         return (completed_courses / total_courses) * 100
 
     def is_completed_by_user(self, user):
-        """Check if user has completed all courses in this certification"""
+        """Check if user has completed all courses in this certification (only if enrolled)"""
+        # Must be enrolled to get certification certificate
+        if not self.enrollments.filter(user=user).exists():
+            return False
+
         active_courses = self.courses.filter(is_active=True)
         if not active_courses.exists():
             return False
 
         return all(course.is_completed_by_user(user) for course in active_courses)
 
+    def is_user_enrolled(self, user):
+        """Check if user is enrolled in this certification"""
+        return self.enrollments.filter(user=user).exists()
+
 
 class Course(models.Model):
-    """Course under a Professional Certification"""
+    """Course under a Professional Certification (can also be taken independently)"""
     certification = models.ForeignKey(
         ProfessionalCertification,
         on_delete=models.CASCADE,
-        related_name='courses'
+        related_name='courses',
+        null=True,
+        blank=True,
+        help_text="Parent certification (optional - can be standalone course)"
     )
     title = models.CharField(max_length=200)
     description = models.TextField()
     thumbnail = CloudinaryField('course_thumbnail', null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_courses',
+        help_text="Instructor who created this course"
+    )
     order = models.IntegerField(default=0, help_text="Display order within certification")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -268,3 +340,27 @@ class ProfessionalCertificationCertificate(models.Model):
 
     def __str__(self):
         return f"Professional Certificate - {self.user.get_full_name()} - {self.certification.title}"
+
+
+class CertificationEnrollment(models.Model):
+    """Track which users are enrolled in which certifications/specializations"""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='certification_enrollments'
+    )
+    certification = models.ForeignKey(
+        ProfessionalCertification,
+        on_delete=models.CASCADE,
+        related_name='enrollments'
+    )
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ['user', 'certification']
+        db_table = 'certification_enrollments'
+        ordering = ['-enrolled_at']
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} enrolled in {self.certification.title}"

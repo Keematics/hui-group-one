@@ -1,7 +1,49 @@
+# =====================================
+# CORE DJANGO DEPENDENCIES
+# =====================================
 Django==5.2.8
-pymysql==1.1.2
+
+# =====================================
+# DATABASE
+# =====================================
+# PostgreSQL adapter for Django
+psycopg2-binary==2.9.10
+
+# Parse DATABASE_URL for database configuration
+# Required for Render deployment
+dj-database-url==2.2.0
+
+# =====================================
+# FILE STORAGE & MEDIA
+# =====================================
+# Image processing library
 pillow==12.0.0
+
+# Cloudinary for cloud-based media storage
 cloudinary==1.44.1
-python-dotenv==1.2.1
 django-cloudinary-storage==0.3.0
+
+# =====================================
+# PDF GENERATION
+# =====================================
+# Generate PDF certificates
 reportlab==4.4.5
+
+# =====================================
+# ENVIRONMENT & CONFIGURATION
+# =====================================
+# Load environment variables from .env file
+python-dotenv==1.2.1
+
+# =====================================
+# PRODUCTION SERVER
+# =====================================
+# Production-ready WSGI server for Render
+gunicorn==21.2.0
+
+# =====================================
+# STATIC FILES (Production)
+# =====================================
+# Serve static files efficiently in production
+# Required for Render deployment
+whitenoise==6.6.0

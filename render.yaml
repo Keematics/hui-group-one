@@ -1,0 +1,169 @@
+# =====================================
+# Render.com Deployment Configuration
+# =====================================
+# This file defines how Render should deploy your application
+# It includes database, web service, and environment configuration
+
+# =====================================
+# DATABASE CONFIGURATION
+# =====================================
+databases:
+  - name: learning-platform-db
+    # Database plan - free tier available
+    # Options: free, starter, standard, pro
+    plan: free
+    # PostgreSQL database
+    databaseName: learning_platform
+    # Database username
+    user: learning_platform_user
+    # Region - choose closest to your users
+    # Options: oregon, frankfurt, ohio, singapore
+    region: oregon
+
+# =====================================
+# WEB SERVICE CONFIGURATION
+# =====================================
+services:
+  - type: web
+    # Service name - must be unique in your Render account
+    name: learning-platform
+    # Runtime environment
+    runtime: python3
+    # Region - should match database region for best performance
+    region: oregon
+    # Plan options: free, starter, standard, pro
+    # Free tier: 750 hours/month, sleeps after 15 minutes of inactivity
+    plan: free
+    # Branch to deploy from
+    branch: main
+    # Build command - runs build.sh script
+    buildCommand: "./build.sh"
+    # Start command - launches Gunicorn server
+    # --bind: Listen on all interfaces, port from Render
+    # --workers: Number of worker processes (2-4 for free tier)
+    # --timeout: Request timeout in seconds
+    startCommand: "gunicorn learning_platform.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+
+    # =====================================
+    # HEALTH CHECK
+    # =====================================
+    # Render will check this path to ensure app is running
+    healthCheckPath: /
+
+    # =====================================
+    # ENVIRONMENT VARIABLES
+    # =====================================
+    # These are automatically set by Render
+    # You can also add custom variables in Render dashboard
+    envVars:
+      # Django settings
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+      - key: DEBUG
+        value: False
+
+      # Django will automatically generate a secret key if not set
+      # But it's better to set it in Render dashboard as a secret
+      - key: SECRET_KEY
+        generateValue: true  # Render will generate a secure random value
+
+      # Database URL - automatically populated by Render from the database above
+      - key: DATABASE_URL
+        fromDatabase:
+          name: learning-platform-db
+          property: connectionString
+
+      # Allowed hosts - your Render domain
+      # Update this after deployment with your actual domain
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+
+      # =====================================
+      # CLOUDINARY CONFIGURATION
+      # =====================================
+      # Add these manually in Render dashboard after deployment
+      # Get credentials from cloudinary.com
+
+      # - key: CLOUDINARY_CLOUD_NAME
+      #   sync: false  # Set in Render dashboard
+
+      # - key: CLOUDINARY_API_KEY
+      #   sync: false  # Set in Render dashboard
+
+      # - key: CLOUDINARY_API_SECRET
+      #   sync: false  # Set in Render dashboard as a secret
+
+      # =====================================
+      # OPTIONAL: SUPERUSER CREDENTIALS
+      # =====================================
+      # Uncomment and set in Render dashboard to auto-create superuser
+
+      # - key: DJANGO_SUPERUSER_USERNAME
+      #   sync: false  # Set in Render dashboard
+
+      # - key: DJANGO_SUPERUSER_PASSWORD
+      #   sync: false  # Set in Render dashboard as a secret
+
+      # - key: DJANGO_SUPERUSER_EMAIL
+      #   sync: false  # Set in Render dashboard
+
+# =====================================
+# DEPLOYMENT NOTES
+# =====================================
+#
+# 1. BEFORE DEPLOYMENT:
+#    - Create a Cloudinary account at cloudinary.com
+#    - Get your cloud name, API key, and API secret
+#    - Commit all your code to your Git repository
+#
+# 2. TO DEPLOY ON RENDER:
+#    a. Go to render.com and sign up/login
+#    b. Click "New +" → "Blueprint"
+#    c. Connect your GitHub/GitLab repository
+#    d. Render will detect render.yaml and create services
+#    e. Wait for deployment to complete (5-10 minutes)
+#
+# 3. AFTER DEPLOYMENT:
+#    a. Go to your web service in Render dashboard
+#    b. Click "Environment" tab
+#    c. Add Cloudinary credentials:
+#       - CLOUDINARY_CLOUD_NAME
+#       - CLOUDINARY_API_KEY
+#       - CLOUDINARY_API_SECRET (mark as secret)
+#    d. Click "Manual Deploy" → "Deploy latest commit"
+#
+# 4. CREATE SUPERUSER:
+#    a. Go to your web service → "Shell" tab
+#    b. Run: python manage.py createsuperuser
+#    c. Follow the prompts to create admin account
+#    OR
+#    a. Uncomment superuser env vars in this file
+#    b. Set them in Render dashboard
+#    c. Uncomment superuser creation in build.sh
+#
+# 5. ACCESS YOUR APP:
+#    - Your app will be at: https://your-service-name.onrender.com
+#    - Admin panel: https://your-service-name.onrender.com/admin
+#
+# 6. IMPORTANT NOTES:
+#    - Free tier sleeps after 15 min inactivity (cold start delay)
+#    - Database has 90-day data retention on free tier
+#    - Upgrade to paid plan for production use
+#    - Set DEBUG=False for production (already set above)
+#    - Add your custom domain in ALLOWED_HOSTS if using one
+#
+# 7. TROUBLESHOOTING:
+#    - Check logs in Render dashboard → "Logs" tab
+#    - Common issues:
+#      * Missing Cloudinary credentials (media won't work)
+#      * Wrong ALLOWED_HOSTS (400 Bad Request)
+#      * Database not connected (500 errors)
+#    - Run migrations manually if needed: python manage.py migrate
+#
+# 8. UPDATING YOUR APP:
+#    - Push changes to your main branch
+#    - Render auto-deploys on every push
+#    - Or click "Manual Deploy" in dashboard
+#
+# =====================================
