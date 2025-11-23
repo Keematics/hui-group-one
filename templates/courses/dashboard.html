@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Welcome, {{ user.get_full_name|default:user.username }}!</h1>
+
+    <!-- Statistics -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ certification_data|length }}</h3>
+                    <p class="mb-0">Available Certifications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ course_certificates.count }}</h3>
+                    <p class="mb-0">Courses Completed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h3>{{ professional_certificates.count }}</h3>
+                    <p class="mb-0">Professional Certificates</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certifications -->
+    <h2 class="mb-4">Your Certifications</h2>
+    <div class="row g-4 mb-5">
+        {% for item in certification_data %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                {% if item.certification.thumbnail %}
+                <img src="{{ item.certification.thumbnail.url }}" class="card-img-top" style="height: 180px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-graduation-cap fa-4x text-white"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.certification.title }}</h5>
+                    <p class="text-muted small mb-3">{{ item.total_courses }} course{{ item.total_courses|pluralize }}</p>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Progress</small>
+                            <small>{{ item.progress|floatformat:0 }}%</small>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: {{ item.progress }}%"></div>
+                        </div>
+                    </div>
+
+                    {% if item.is_completed %}
+                    <span class="badge bg-success w-100 mb-2">
+                        <i class="fas fa-check-circle"></i> Completed
+                    </span>
+                    {% endif %}
+
+                    <a href="{% url 'certification_detail' item.certification.pk %}" class="btn btn-primary w-100">
+                        {% if item.is_completed %}View Certificate{% else %}Continue Learning{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No certifications available yet. Check back soon!
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Recent Activity -->
+    {% if recent_progress %}
+    <h2 class="mb-4">Recent Activity</h2>
+    <div class="card mb-5">
+        <div class="list-group list-group-flush">
+            {% for progress in recent_progress %}
+            <a href="{% url 'module_view' progress.module.pk %}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">{{ progress.module.title }}</h6>
+                        <small class="text-muted">{{ progress.module.course.title }}</small>
+                    </div>
+                    <div>
+                        {% if progress.is_completed %}
+                        <span class="badge bg-success"><i class="fas fa-check"></i> Completed</span>
+                        {% else %}
+                        <span class="badge bg-warning">In Progress</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Certificates -->
+    {% if course_certificates or professional_certificates %}
+    <h2 class="mb-4">Your Certificates</h2>
+    <div class="row g-4">
+        {% for cert in course_certificates %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-certificate text-primary"></i> {{ cert.course.title }}</h5>
+                    <p class="text-muted small mb-3">Issued: {{ cert.issued_at|date:"F d, Y" }}</p>
+                    <p class="small mb-2">Certificate ID: <code>{{ cert.certificate_id }}</code></p>
+                    <a href="{% url 'download_course_certificate' cert.pk %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-download"></i> Download Certificate
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% for cert in professional_certificates %}
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-award text-success"></i> {{ cert.certification.title }}</h5>
+                    <span class="badge bg-success mb-2">Professional Certification</span>
+                    <p class="text-muted small mb-3">Issued: {{ cert.issued_at|date:"F d, Y" }}</p>
+                    <p class="small mb-2">Certificate ID: <code>{{ cert.certificate_id }}</code></p>
+                    <a href="{% url 'download_professional_certificate' cert.pk %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-download"></i> Download Certificate
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

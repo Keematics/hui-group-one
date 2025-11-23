@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.title }} - Learning Platform{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'certification_detail' course.certification.pk %}">{{ course.certification.title }}</a></li>
+                    <li class="breadcrumb-item active">{{ course.title }}</li>
+                </ol>
+            </nav>
+            <h1 class="mb-3">{{ course.title }}</h1>
+            <p class="text-muted">{{ course.description }}</p>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3">Course Progress</h6>
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div class="progress-bar" style="width: {{ course_progress }}%">{{ course_progress|floatformat:0 }}%</div>
+                    </div>
+                    {% if is_course_complete %}
+                    <span class="badge bg-success w-100 mt-2"><i class="fas fa-trophy"></i> Course Completed!</span>
+                    {% if course_certificate %}
+                    <a href="{% url 'download_course_certificate' course_certificate.pk %}" class="btn btn-success w-100 mt-2">
+                        <i class="fas fa-download"></i> Download Certificate
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <small class="text-muted d-block mt-2">Complete 90% to earn certificate</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modules -->
+    <h2 class="mb-4">Modules</h2>
+    <div class="row g-3">
+        {% for item in module_data %}
+        <div class="col-12">
+            <div class="card {% if item.is_completed %}border-success{% endif %}">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center">
+                            {% if item.is_completed %}
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                            {% else %}
+                            <i class="far fa-circle fa-2x text-muted"></i>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-7">
+                            <h5 class="mb-1">{{ item.module.title }}</h5>
+                            <div>
+                                {% if item.module.module_type == 'video' %}
+                                <span class="badge bg-danger"><i class="fas fa-video"></i> Video</span>
+                                {% elif item.module.module_type == 'text' %}
+                                <span class="badge bg-primary"><i class="fas fa-file-alt"></i> Text</span>
+                                {% elif item.module.module_type == 'picture' %}
+                                <span class="badge bg-info"><i class="fas fa-image"></i> Picture</span>
+                                {% elif item.module.module_type == 'text_picture' %}
+                                <span class="badge bg-warning"><i class="fas fa-file-image"></i> Text & Picture</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            {% if item.is_completed %}
+                            <span class="badge bg-success me-2">Completed</span>
+                            {% endif %}
+                            <a href="{% url 'module_view' item.module.pk %}" class="btn btn-primary">
+                                {% if item.is_completed %}Review{% else %}Start{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if show_confetti %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script>
+    // Trigger confetti animation
+    var duration = 5 * 1000;
+    var animationEnd = Date.now() + duration;
+    var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    var interval = setInterval(function() {
+        var timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+            return clearInterval(interval);
+        }
+
+        var particleCount = 50 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+</script>
+{% endif %}
+{% endblock %}

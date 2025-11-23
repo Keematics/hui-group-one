@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Learning Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Welcome to LearnHub</h1>
+                <p class="lead mb-4">Your gateway to professional certifications and career advancement. Learn at your own pace with our comprehensive courses.</p>
+                {% if not user.is_authenticated %}
+                <a href="{% url 'register' %}" class="btn btn-light btn-lg me-2">
+                    <i class="fas fa-rocket"></i> Get Started Free
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </a>
+                {% else %}
+                <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                </a>
+                {% endif %}
+            </div>
+            <div class="col-lg-6 d-none d-lg-block text-center">
+                <i class="fas fa-laptop-code" style="font-size: 200px; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5 fw-bold">Why Choose LearnHub?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-certificate fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Professional Certifications</h5>
+                    <p class="card-text">Earn recognized certifications that boost your career prospects and validate your skills.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-chart-line fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title">Track Your Progress</h5>
+                    <p class="card-text">Monitor your learning journey with detailed progress tracking for every course and module.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-video fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title">Rich Content</h5>
+                    <p class="card-text">Learn through videos, interactive content, and hands-on exercises designed by experts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Certifications -->
+{% if certifications %}
+<section class="py-5 bg-white">
+    <div class="container">
+        <h2 class="text-center mb-5 fw-bold">Featured Certifications</h2>
+        <div class="row g-4">
+            {% for cert in certifications %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    {% if cert.thumbnail %}
+                    <img src="{{ cert.thumbnail.url }}" class="card-img-top" alt="{{ cert.title }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-primary d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas fa-graduation-cap fa-4x text-white"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ cert.title }}</h5>
+                        <p class="card-text">{{ cert.description|truncatewords:20 }}</p>
+                        <span class="badge bg-primary">{{ cert.get_total_courses }} Course{{ cert.get_total_courses|pluralize }}</span>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'certification_detail' cert.pk %}" class="btn btn-primary w-100">
+                            <i class="fas fa-arrow-right"></i> Start Learning
+                        </a>
+                        {% else %}
+                        <a href="{% url 'register' %}" class="btn btn-primary w-100">
+                            <i class="fas fa-user-plus"></i> Register to Access
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Group Members Section -->
+{% if group_members %}
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5 fw-bold">Our Team</h2>
+        <p class="text-center text-muted mb-5">Meet the talented individuals behind this project</p>
+        <div class="row g-4 justify-content-center">
+            {% for member in group_members %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body p-4">
+                        {% if member.user.profile_picture %}
+                        <img src="{{ member.user.profile_picture.url }}" alt="{{ member.user.get_full_name }}"
+                             class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-3"
+                             style="width: 120px; height: 120px;">
+                            <i class="fas fa-user fa-3x text-white"></i>
+                        </div>
+                        {% endif %}
+                        <h5 class="card-title mb-1">{{ member.user.get_full_name }}</h5>
+                        <p class="text-primary fw-bold mb-2">{{ member.title }}</p>
+                        {% if member.is_leader %}
+                        <span class="badge bg-warning text-dark mb-2">
+                            <i class="fas fa-star"></i> Group Leader
+                        </span>
+                        {% endif %}
+                        <p class="text-muted small mb-0">
+                            <i class="fas fa-id-card"></i> {{ member.matric_number }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Project Details -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5 fw-bold">About This Project</h2>
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-3"><i class="fas fa-info-circle text-primary"></i> Project Overview</h5>
+                        <p class="card-text">This is a comprehensive learning management system built as a group assignment. The platform enables users to:</p>
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> Register and manage their learning profiles</li>
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> Access professional certifications with multiple courses</li>
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> Learn through diverse content types (text, images, videos)</li>
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> Track progress across all courses and modules</li>
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> Earn certificates upon course completion (90% threshold)</li>
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> Download professional certification certificates</li>
+                        </ul>
+
+                        <h5 class="card-title mb-3 mt-4"><i class="fas fa-code text-primary"></i> Technology Stack</h5>
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3">
+                                <span class="badge bg-success w-100 p-2">Django</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <span class="badge bg-info w-100 p-2">MySQL</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <span class="badge bg-warning text-dark w-100 p-2">jQuery</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <span class="badge bg-primary w-100 p-2">Cloudinary</span>
+                            </div>
+                        </div>
+
+                        <h5 class="card-title mb-3 mt-4"><i class="fas fa-star text-primary"></i> Key Features</h5>
+                        <ul>
+                            <li><strong>Progress Tracking:</strong> Video modules require 85% completion, while text/image modules need manual confirmation</li>
+                            <li><strong>Certificate Generation:</strong> Automatic PDF certificate generation upon achieving 90% course completion</li>
+                            <li><strong>Professional Certifications:</strong> Complete all courses in a certification to earn a comprehensive professional certificate</li>
+                            <li><strong>Responsive Design:</strong> Fully responsive interface that works seamlessly across all devices</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+{% if not user.is_authenticated %}
+<section class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Start Learning?</h2>
+        <p class="lead mb-4">Join thousands of learners advancing their careers with professional certifications.</p>
+        <a href="{% url 'register' %}" class="btn btn-light btn-lg">
+            <i class="fas fa-rocket"></i> Get Started Now
+        </a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

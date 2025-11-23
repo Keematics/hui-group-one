@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ module.title }} - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'course_detail' course.pk %}">{{ course.title }}</a></li>
+            <li class="breadcrumb-item active">{{ module.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h1 class="mb-3">{{ module.title }}</h1>
+
+                    {% if progress.is_completed %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> You have completed this module!
+                    </div>
+                    {% endif %}
+
+                    <!-- Video Module -->
+                    {% if module.module_type == 'video' %}
+                    <div class="mb-4">
+                        {% if module.video %}
+                        <video id="moduleVideo" class="w-100" controls style="max-height: 500px; background: #000;">
+                            <source src="{{ module.video.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="mt-2">
+                            <small class="text-muted">Watch at least 85% to complete this module</small>
+                            <div class="progress mt-2" style="height: 20px;">
+                                <div id="videoProgress" class="progress-bar" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Picture Module -->
+                    {% if module.module_type == 'picture' or module.module_type == 'text_picture' %}
+                    <div class="mb-4">
+                        {% if module.picture %}
+                        <img src="{{ module.picture.url }}" class="img-fluid rounded" alt="{{ module.title }}">
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Text Content -->
+                    {% if module.module_type == 'text' or module.module_type == 'text_picture' %}
+                    <div class="mb-4">
+                        <div class="content-text">{{ module.text_content|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Mark as Complete Button (for non-video modules) -->
+                    {% if module.module_type != 'video' and not progress.is_completed %}
+                    <button id="markCompleteBtn" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-check"></i> Mark as Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="row g-2">
+                <div class="col-6">
+                    {% if prev_module %}
+                    <a href="{% url 'module_view' prev_module.pk %}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="col-6">
+                    {% if next_module %}
+                    <a href="{% url 'module_view' next_module.pk %}" class="btn btn-primary w-100">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'course_detail' course.pk %}" class="btn btn-success w-100">
+                        <i class="fas fa-list"></i> Back to Course
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h5 class="card-title">Module Info</h5>
+                    <hr>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Type</small>
+                        {% if module.module_type == 'video' %}
+                        <span class="badge bg-danger"><i class="fas fa-video"></i> Video</span>
+                        {% elif module.module_type == 'text' %}
+                        <span class="badge bg-primary"><i class="fas fa-file-alt"></i> Text</span>
+                        {% elif module.module_type == 'picture' %}
+                        <span class="badge bg-info"><i class="fas fa-image"></i> Picture</span>
+                        {% elif module.module_type == 'text_picture' %}
+                        <span class="badge bg-warning"><i class="fas fa-file-image"></i> Text & Picture</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Status</small>
+                        {% if progress.is_completed %}
+                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>
+                        {% else %}
+                        <span class="badge bg-warning"><i class="fas fa-clock"></i> In Progress</span>
+                        {% endif %}
+                    </div>
+
+                    {% if progress.completed_at %}
+                    <div>
+                        <small class="text-muted d-block">Completed On</small>
+                        <p>{{ progress.completed_at|date:"M d, Y" }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    {% if module.module_type == 'video' %}
+    var video = document.getElementById('moduleVideo');
+    var progressBar = $('#videoProgress');
+    var updateInterval;
+
+    if (video) {
+        video.addEventListener('timeupdate', function() {
+            var progress = (video.currentTime / video.duration) * 100;
+            progressBar.css('width', progress + '%');
+            progressBar.text(Math.round(progress) + '%');
+
+            // Update progress every 5 seconds
+            if (!updateInterval) {
+                updateInterval = setInterval(function() {
+                    updateVideoProgress(Math.floor(video.currentTime));
+                }, 5000);
+            }
+        });
+
+        video.addEventListener('ended', function() {
+            updateVideoProgress(Math.floor(video.duration));
+            clearInterval(updateInterval);
+        });
+    }
+
+    function updateVideoProgress(watchTime) {
+        $.ajax({
+            url: '{% url "update_video_progress" module.pk %}',
+            type: 'POST',
+            data: {
+                watch_time: watchTime
+            },
+            success: function(response) {
+                if (response.is_completed && !$('.alert-success').length) {
+                    location.reload();
+                }
+            },
+            error: function(xhr) {
+                console.error('Error updating progress:', xhr);
+            }
+        });
+    }
+    {% endif %}
+
+    {% if module.module_type != 'video' %}
+    $('#markCompleteBtn').click(function() {
+        var btn = $(this);
+        btn.prop('disabled', true);
+        btn.html('<span class="spinner-border spinner-border-sm"></span> Marking...');
+
+        $.ajax({
+            url: '{% url "mark_module_complete" module.pk %}',
+            type: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false);
+                btn.html('<i class="fas fa-check"></i> Mark as Read');
+                alert('Error marking module as complete. Please try again.');
+            }
+        });
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}
