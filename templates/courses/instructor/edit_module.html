@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Module - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Module</h4>
+                    <p class="mb-0 small">Course: {{ module.course.title }}</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" id="moduleForm">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="title" class="form-label">Module Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   value="{{ module.title }}">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="module_type" class="form-label">Module Type *</label>
+                            <select class="form-select" id="module_type" name="module_type" required>
+                                <option value="text" {% if module.module_type == 'text' %}selected{% endif %}>Text Only</option>
+                                <option value="picture" {% if module.module_type == 'picture' %}selected{% endif %}>Picture Only</option>
+                                <option value="video" {% if module.module_type == 'video' %}selected{% endif %}>Video</option>
+                                <option value="text_picture" {% if module.module_type == 'text_picture' %}selected{% endif %}>Text + Picture</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="order" class="form-label">Display Order</label>
+                            <input type="number" class="form-control" id="order" name="order" value="{{ module.order }}" min="0">
+                        </div>
+
+                        <!-- Text Content -->
+                        <div class="mb-4" id="text_content_field">
+                            <label for="text_content" class="form-label">Text Content</label>
+                            <textarea class="form-control" id="text_content" name="text_content" rows="10">{{ module.text_content }}</textarea>
+                        </div>
+
+                        <!-- Picture Upload -->
+                        <div class="mb-4" id="picture_field">
+                            <label for="picture" class="form-label">Picture/Image</label>
+                            {% if module.picture %}
+                            <div class="mb-2">
+                                <img src="{{ module.picture.url }}" alt="Current picture"
+                                     class="img-thumbnail" style="max-height: 300px;">
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" id="picture" name="picture" accept="image/*">
+                            <small class="text-muted">Leave empty to keep current image</small>
+                        </div>
+
+                        <!-- Video Upload -->
+                        <div class="mb-4" id="video_field">
+                            <label for="video" class="form-label">Video File</label>
+                            {% if module.video %}
+                            <div class="mb-2">
+                                <video controls style="max-width: 100%; max-height: 400px;">
+                                    <source src="{{ module.video.url }}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" id="video" name="video" accept="video/*">
+                            <small class="text-muted">Leave empty to keep current video</small>
+                        </div>
+
+                        <!-- Video Duration -->
+                        <div class="mb-4" id="video_duration_field">
+                            <label for="video_duration" class="form-label">Video Duration (seconds)</label>
+                            <input type="number" class="form-control" id="video_duration" name="video_duration"
+                                   value="{{ module.video_duration }}" min="1">
+                            <small class="text-muted">
+                                Required for video modules (85% watch threshold). Example: 5 minutes = 300 seconds
+                            </small>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <a href="{% url 'edit_course' module.course.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Course
+                            </a>
+                            <a href="{% url 'delete_module' module.pk %}" class="btn btn-outline-danger ms-auto">
+                                <i class="fas fa-trash"></i> Delete Module
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initial setup - show/hide fields based on current module type
+    updateFields($('#module_type').val());
+
+    // Update fields when type changes
+    $('#module_type').on('change', function() {
+        updateFields($(this).val());
+    });
+
+    function updateFields(type) {
+        // Hide all conditional fields first
+        $('#text_content_field').hide();
+        $('#picture_field').hide();
+        $('#video_field').hide();
+        $('#video_duration_field').hide();
+
+        // Show relevant fields
+        if (type === 'text' || type === 'text_picture') {
+            $('#text_content_field').show();
+        }
+        if (type === 'picture' || type === 'text_picture') {
+            $('#picture_field').show();
+        }
+        if (type === 'video') {
+            $('#video_field').show();
+            $('#video_duration_field').show();
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

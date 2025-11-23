@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}My Enrollments - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-bookmark"></i> My Enrollments</h1>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    {% if enrollment_data %}
+    <div class="row g-4">
+        {% for item in enrollment_data %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 {% if item.is_completed %}border-success{% endif %}">
+                {% if item.certification.thumbnail %}
+                <img src="{{ item.certification.thumbnail.url }}" class="card-img-top"
+                     style="height: 180px; object-fit: cover;" alt="{{ item.certification.title }}">
+                {% else %}
+                <div class="card-img-top d-flex align-items-center justify-content-center"
+                     style="height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-certificate fa-4x text-white"></i>
+                </div>
+                {% endif %}
+
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ item.certification.title }}</h5>
+                        <span class="badge bg-{{ item.certification.certification_type == 'professional'|yesno:'primary,info' }}">
+                            {{ item.certification.get_certification_type_display }}
+                        </span>
+                    </div>
+
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-calendar"></i> Enrolled: {{ item.enrollment.enrolled_at|date:"M d, Y" }}
+                    </p>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Progress</small>
+                            <small>{{ item.progress|floatformat:0 }}%</small>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar {% if item.is_completed %}bg-success{% else %}bg-primary{% endif %}"
+                                 style="width: {{ item.progress }}%"></div>
+                        </div>
+                    </div>
+
+                    {% if item.is_completed %}
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-trophy"></i> <strong>Completed!</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'certification_detail' item.certification.pk %}"
+                           class="btn btn-primary btn-sm flex-grow-1">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <a href="{% url 'unenroll_certification' item.certification.pk %}"
+                           class="btn btn-outline-danger btn-sm"
+                           onclick="return confirm('Are you sure you want to unenroll?');">
+                            <i class="fas fa-times"></i> Unenroll
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-bookmark fa-4x text-muted mb-3"></i>
+        <h3>No Enrollments Yet</h3>
+        <p class="text-muted mb-4">You haven't enrolled in any certifications yet.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-search"></i> Browse Certifications
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

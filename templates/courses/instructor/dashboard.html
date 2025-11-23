@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Instructor Dashboard - Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-chalkboard-teacher"></i> Instructor Dashboard</h1>
+            <p class="text-muted">Manage your certifications, courses, and modules</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ certifications.count }}</h3>
+                    <p class="mb-0">Total Certifications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ courses.count }}</h3>
+                    <p class="mb-0">Total Courses</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certifications Section -->
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="fas fa-certificate"></i> My Certifications</h2>
+            <a href="{% url 'create_certification' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create New Certification
+            </a>
+        </div>
+
+        {% if certifications %}
+        <div class="row g-4">
+            {% for cert in certifications %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    {% if cert.thumbnail %}
+                    <img src="{{ cert.thumbnail.url }}" class="card-img-top"
+                         style="height: 180px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center"
+                         style="height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-certificate fa-4x text-white"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title">{{ cert.title }}</h5>
+                            <span class="badge bg-{{ cert.certification_type == 'professional'|yesno:'primary,info' }}">
+                                {{ cert.get_certification_type_display }}
+                            </span>
+                        </div>
+                        <p class="card-text text-muted small">{{ cert.description|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-book"></i> {{ cert.course_count }} course{{ cert.course_count|pluralize }}
+                            </small>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i> {{ cert.created_at|date:"M d, Y" }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'edit_certification' cert.pk %}" class="btn btn-sm btn-primary flex-grow-1">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'create_course_for_cert' cert.pk %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-plus"></i> Add Course
+                            </a>
+                            <a href="{% url 'delete_certification' cert.pk %}" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-certificate fa-4x text-muted mb-3"></i>
+                <h4>No Certifications Yet</h4>
+                <p class="text-muted mb-4">Create your first professional certification or specialization to get started.</p>
+                <a href="{% url 'create_certification' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Your First Certification
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Courses Section -->
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="fas fa-book"></i> My Courses</h2>
+            <a href="{% url 'create_course' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Create New Course
+            </a>
+        </div>
+
+        {% if courses %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Course Title</th>
+                        <th>Certification</th>
+                        <th>Order</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td>
+                            <strong>{{ course.title }}</strong>
+                        </td>
+                        <td>
+                            {% if course.certification %}
+                            <span class="badge bg-secondary">{{ course.certification.title }}</span>
+                            {% else %}
+                            <span class="badge bg-info">Standalone</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ course.order }}</td>
+                        <td>{{ course.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'course_detail' course.pk %}" class="btn btn-outline-primary"
+                                   title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'edit_course' course.pk %}" class="btn btn-outline-secondary"
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'create_module' course.pk %}" class="btn btn-outline-success"
+                                   title="Add Module">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                                <a href="{% url 'delete_course' course.pk %}" class="btn btn-outline-danger"
+                                   title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                <h4>No Courses Yet</h4>
+                <p class="text-muted mb-4">Create your first course to start teaching.</p>
+                <a href="{% url 'create_course' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Create Your First Course
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

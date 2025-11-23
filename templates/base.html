@@ -205,7 +205,21 @@
                                 <li><a class="dropdown-item" href="{% url 'dashboard' %}">
                                     <i class="fas fa-tachometer-alt"></i> Dashboard
                                 </a></li>
+                                <li><a class="dropdown-item" href="{% url 'profile' %}">
+                                    <i class="fas fa-user"></i> My Profile
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'my_enrollments' %}">
+                                    <i class="fas fa-bookmark"></i> My Enrollments
+                                </a></li>
+                                {% if user.can_create_courses %}
+                                <li><a class="dropdown-item" href="{% url 'instructor_dashboard' %}">
+                                    <i class="fas fa-chalkboard-teacher"></i> Instructor Dashboard
+                                </a></li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'change_password' %}">
+                                    <i class="fas fa-lock"></i> Change Password
+                                </a></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}">
                                     <i class="fas fa-sign-out-alt"></i> Logout
                                 </a></li>
