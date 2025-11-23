@@ -20,7 +20,7 @@ import cloudinary.uploader
 from .models import (
     User, GroupMember, ProfessionalCertification, Course,
     Module, ModuleProgress, CourseCertificate,
-    ProfessionalCertificationCertificate
+    ProfessionalCertificationCertificate, CertificationEnrollment
 )
 
 
@@ -786,7 +786,6 @@ def create_module(request, course_pk):
             module_type=module_type,
             order=order,
             text_content=text_content,
-            video_duration=video_duration
         )
 
         # Handle file uploads
